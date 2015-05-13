@@ -219,6 +219,15 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
 
         // Add Via: 1.1 kaazing header
         connectSession.addWriteHeader(HEADER_VIA, VIA_HEADER_VALUE);
+
+        String prop = System.getProperty("http.proxy.remove.headers");
+        if (prop != null) {
+            String[] headers = prop.split(",");
+            for(String header : headers) {
+                LOGGER.debug("Removing header "+header+" from connect session = "+connectSession);
+                connectSession.clearWriteHeaders(header);
+            }
+        }
     }
     
     /*
