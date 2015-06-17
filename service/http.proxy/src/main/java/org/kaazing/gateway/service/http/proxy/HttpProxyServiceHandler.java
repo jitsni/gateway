@@ -159,7 +159,7 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
                     acceptSession.setReason(connectSession.getReason());
                     acceptSession.setVersion(connectSession.getVersion());
 
-                    boolean upgrade = processHopByHopHeaders(connectSession, acceptSession);
+                    boolean upgrade = processHopByHopHeaders(connectSession, acceptSession, "http.proxy.remove.response.headers");
                     // Add Connection: upgrade to acceptSession
                     if (upgrade) {
                         acceptSession.setWriteHeader(HEADER_CONNECTION, HEADER_UPGRADE);
@@ -177,7 +177,7 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
      * If the header is an upgrade one, let the Upgrade header go through as this
      * service supports upgrade
      */
-    private static boolean processHopByHopHeaders(HttpSession src, HttpSession dest) {
+    private static boolean processHopByHopHeaders(HttpSession src, HttpSession dest, String property) {
         Set<String> hopByHopHeaders = getHopByHopHeaders(src);
         boolean upgrade = src.getReadHeader(HEADER_UPGRADE) != null;
         if (upgrade) {
@@ -194,6 +194,15 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
             }
         }
 
+        String prop = System.getProperty(property);
+        if (prop != null) {
+            String[] headers = prop.split(",");
+            for(String header : headers) {
+                LOGGER.debug("Removing header "+header+" from session = "+dest);
+                dest.clearWriteHeaders(header);
+            }
+        }
+
         return upgrade;
     }
     
@@ -204,7 +213,7 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
      * service supports upgrade
      */
     private static void processRequestHeaders(HttpAcceptSession acceptSession, HttpConnectSession connectSession) {
-        boolean upgrade = processHopByHopHeaders(acceptSession, connectSession);
+        boolean upgrade = processHopByHopHeaders(acceptSession, connectSession, "http.proxy.remove.request.headers");
 
         // Add Connection: upgrade or Connection: close header
         if (upgrade) {
@@ -219,15 +228,6 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
 
         // Add Via: 1.1 kaazing header
         connectSession.addWriteHeader(HEADER_VIA, VIA_HEADER_VALUE);
-
-        String prop = System.getProperty("http.proxy.remove.headers");
-        if (prop != null) {
-            String[] headers = prop.split(",");
-            for(String header : headers) {
-                LOGGER.debug("Removing header "+header+" from connect session = "+connectSession);
-                connectSession.clearWriteHeaders(header);
-            }
-        }
     }
     
     /*
