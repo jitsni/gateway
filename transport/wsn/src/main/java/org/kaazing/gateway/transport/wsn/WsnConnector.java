@@ -358,15 +358,6 @@ public class WsnConnector extends AbstractBridgeConnector<WsnSession> {
                                         }
                                     };
 
-                                    String wsAcceptHeader = httpSession.getReadHeader("Sec-WebSocket-Accept");
-                                    // fail wsn connection if accept header is not correct
-                                    // TODO check hash
-                                    if (wsAcceptHeader == null) {
-                                        logger.info("WebSocket connection failed: missing Sec-WebSocket-Accept response header, does not comply with RFC 6455 - use connect options or another protocol");
-                                        wsnConnectFuture.setException(new Exception("WebSocket Upgrade Failed"));
-                                        return;
-                                    }
-
                                     String frameType = httpSession.getReadHeader("X-Frame-Type");
                                     if ("binary".equals(frameType)) {
                                         parent.setAttribute(ENCODING_KEY, Encoding.BINARY);

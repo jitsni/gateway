@@ -999,9 +999,11 @@ public class WsnAcceptor extends AbstractBridgeAcceptor<WsnSession, WsnBindings.
                     // RFC 64554.2.1.4 request MUST contain Connection: Upgrade
                     boolean connectionUpgrade = false;
                     final List<String> connectionHeaders = session.getReadHeaders(HEADER_CONNECTION);
-                    for (String connectionHeader : connectionHeaders) {
-                        if (HEADER_UPGRADE.equalsIgnoreCase(connectionHeader)) {
-                            connectionUpgrade = true;
+                    if (connectionHeaders != null) {
+                        for (String connectionHeader : connectionHeaders) {
+                            if (HEADER_UPGRADE.equalsIgnoreCase(connectionHeader)) {
+                                connectionUpgrade = true;
+                            }
                         }
                     }
                     if (!connectionUpgrade) {
