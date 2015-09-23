@@ -185,9 +185,6 @@ public class WsebConnector extends AbstractBridgeConnector<WsebSession> {
 
         // default options but clear the transports so they get rebuilt by default
         ResourceOptions createOptions = ResourceOptions.FACTORY.newResourceOptions(httpxeAddress);
-        createOptions.setOption(ResourceAddress.TRANSPORT, null);
-        createOptions.setOption(ResourceAddress.TRANSPORT_URI, null);
-
         ResourceAddress createAddress = resourceAddressFactory.newResourceAddress(createURI, createOptions);
         BridgeConnector connector = bridgeServiceFactory.newBridgeConnector(createAddress);
 
