@@ -222,7 +222,7 @@ public abstract class AbstractProxyHandler extends IoHandlerAdapter {
     protected class AttachedSessionManager {
         private final IoSession attachedSession;
         private final AtomicInteger scheduledWriteBytes = new AtomicInteger(0);
-        private final AtomicBoolean readSuspended = new AtomicBoolean(false);
+        private boolean readSuspended;
         private final AtomicInteger totalTransferredBytes = new AtomicInteger(0);
 
         // private throughput limit for this session
@@ -282,12 +282,11 @@ public abstract class AbstractProxyHandler extends IoHandlerAdapter {
                             + Thread.currentThread().getName() + "] scheduledWriteBytes " + newScheduledWriteBytes
                             + " exceeds " + maximumPendingBytes + ", suspending reads on " + sourceSession);
                 }
-                // KG-2665: handle the fact that AbstractIoSession.suspendRead and resumeRead are not
-                // thread-safe by guarding with an AtomicBoolean and spinning to make sure the outcome is correct
-                // when there is a race with resumeRead in the write request future listener. This also requires
-                // a fix in Mina (KG-2820) to make AbstractIoSession.readSuspended volatile.
-                while (readSuspended.compareAndSet(false, true)) {
-                    sourceSession.suspendRead();
+                synchronized (sourceSession) {
+                    if (!readSuspended) {
+                        readSuspended = true;
+                        sourceSession.suspendRead();
+                    }
                 }
             }
             // Add the FutureListener after suspending to ensure the FutureListener sees it is suspended
@@ -297,16 +296,18 @@ public abstract class AbstractProxyHandler extends IoHandlerAdapter {
                 public void operationComplete(WriteFuture future) {
                     int newScheduledWriteBytes = scheduledWriteBytes.addAndGet(-bytesWritten);
                     // Use <= to ensure we resume read in case where both values are 0
-                    if (readSuspended.get() && newScheduledWriteBytes <= thresholdPendingBytes) {
+                    if (newScheduledWriteBytes <= thresholdPendingBytes) {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug("[" + sourceSession.getId() + "->" + attachedSession.getId() + ", "
                                     + Thread.currentThread().getName() + "] scheduledWriteBytes "
                                     + newScheduledWriteBytes + " <= " + thresholdPendingBytes + ", resuming reads on "
                                     + sourceSession);
                         }
-                        // KG-2665: handle race with suspendRead, see above.
-                        while (readSuspended.compareAndSet(true, false)) {
-                            sourceSession.resumeRead();
+                        synchronized (sourceSession) {
+                            if (readSuspended) {
+                                readSuspended = false;
+                                sourceSession.resumeRead();
+                            }
                         }
                     }
                 }
