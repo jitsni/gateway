@@ -277,6 +277,9 @@ public abstract class AbstractProxyHandler extends IoHandlerAdapter {
 
             int newScheduledWriteBytes = scheduledWriteBytes.addAndGet(bytesWritten);
             if (newScheduledWriteBytes > maximumPendingBytes) {
+                System.out.println("[" + sourceSession.getId() + "->" + attachedSession.getId() + ", "
+                        + Thread.currentThread().getName() + "] scheduledWriteBytes " + newScheduledWriteBytes
+                        + " exceeds " + maximumPendingBytes + ", suspending reads on " + sourceSession);
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("[" + sourceSession.getId() + "->" + attachedSession.getId() + ", "
                             + Thread.currentThread().getName() + "] scheduledWriteBytes " + newScheduledWriteBytes

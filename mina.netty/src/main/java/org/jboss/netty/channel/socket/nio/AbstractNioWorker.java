@@ -106,6 +106,10 @@ public abstract class AbstractNioWorker extends AbstractNioSelector implements W
     AbstractNioWorker(Executor executor, ThreadNameDeterminer determiner) {
         super(executor, determiner);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(UDP_CHANNEL_BUFFER_SIZE_PER_WORKER + TRAILER_LENGTH);
+System.out.println("Agrona buffer Size = " + UDP_CHANNEL_BUFFER_SIZE_PER_WORKER);
+System.out.println("LOGGER = " + LOGGER.getClass());
+
+LOGGER.debug("JITU: Agrona buffer size = " + UDP_CHANNEL_BUFFER_SIZE_PER_WORKER);
         ringBuffer = new OneToOneRingBuffer(new UnsafeBuffer(byteBuffer));
         channels = new Int2ObjectHashMap<>();
     }
@@ -671,6 +675,9 @@ public abstract class AbstractNioWorker extends AbstractNioSelector implements W
         atomicBuffer.wrap(byteBuffer);
         // If there is no space in the ring buffer,  the message would be dropped (ok for UDP)
         boolean written = ringBuffer.write(channel.getId(), atomicBuffer, 0, atomicBuffer.capacity());
+if (!written) {
+    System.out.println(String.format("Message %s for channel %s is not written to ring buffer", message, channel));
+}
         if (LOGGER.isDebugEnabled() && !written) {
             LOGGER.debug(String.format("Message %s for channel %s is not written to ring buffer", message, channel));
         }
@@ -701,8 +708,11 @@ public abstract class AbstractNioWorker extends AbstractNioSelector implements W
             ChannelBuffer channelBuffer = bufferFactory.getBuffer(byteBuffer);
 
             Channels.fireMessageReceived(childChannel, channelBuffer);
-        } else if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(String.format("There is no channel %s found, so dropping message %s", msgTypeId, buffer));
+        } else {
+            System.out.println(String.format("There is no channel %s found, so dropping message %s", msgTypeId, buffer));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(String.format("There is no channel %s found, so dropping message %s", msgTypeId, buffer));
+            }
         }
     }
 }

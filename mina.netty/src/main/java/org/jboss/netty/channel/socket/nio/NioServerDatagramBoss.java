@@ -37,6 +37,8 @@ import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.ReceiveBufferSizePredictor;
+import org.jboss.netty.logging.InternalLogger;
+import org.jboss.netty.logging.InternalLoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -56,6 +58,10 @@ import static org.jboss.netty.channel.Channels.*;
  * It also implements the {@link Selector} loop.
  */
 public class NioServerDatagramBoss extends AbstractNioWorker implements Boss {
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getInstance(NioServerDatagramBoss.class);
+
+    private long totalReadPackets;
+    private long totalWritePackets;
 
     /**
      * Sole constructor.
@@ -106,6 +112,14 @@ public class NioServerDatagramBoss extends AbstractNioWorker implements Boss {
 
                 // Update the predictor.
                 predictor.previousReceiveBufferSize(readBytes);
+
+                totalReadPackets++;
+if (totalReadPackets %10000 == 0) {
+    System.out.println(String.format("NioServerDatagramBoss: %s reads: %d writes: %d", this, totalReadPackets, totalWritePackets));
+}
+if (LOGGER.isDebugEnabled() && totalReadPackets %10000 == 0) {
+    LOGGER.debug(String.format("NioServerDatagramBoss: %s reads: %d writes: %d", this, totalReadPackets, totalWritePackets));
+}
 
                 // Notify the interested parties about the newly arrived message.
                 fireMessageReceived(
@@ -309,6 +323,14 @@ public class NioServerDatagramBoss extends AbstractNioWorker implements Boss {
 
                     if (localWrittenBytes > 0 || buf.finished()) {
                         // Successful write - proceed to the next message.
+                        totalWritePackets++;
+if (totalWritePackets %10000 == 0) {
+    System.out.println(String.format("NioServerDatagramBoss: %s reads: %d writes: %d", this, totalReadPackets, totalWritePackets));
+}
+
+if (LOGGER.isDebugEnabled() && totalWritePackets %10000 == 0) {
+    LOGGER.debug(String.format("NioServerDatagramBoss: %s reads: %d writes: %d", this, totalReadPackets, totalWritePackets));
+}
                         buf.release();
                         ChannelFuture future = evt.getFuture();
                         channel.currentWriteEvent = null;
@@ -354,11 +376,5 @@ public class NioServerDatagramBoss extends AbstractNioWorker implements Boss {
         }
 
         fireWriteComplete(channel, writtenBytes);
-    }
-
-    @Override
-    public void run() {
-        super.run();
-        recvBufferPool.releaseExternalResources();
     }
 }
