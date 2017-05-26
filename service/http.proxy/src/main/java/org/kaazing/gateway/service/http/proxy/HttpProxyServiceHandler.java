@@ -229,10 +229,17 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
             }
 
             ConnectSessionInitializer sessionInitializer = new ConnectSessionInitializer(acceptSession);
-            ConnectFuture future = getServiceContext().connect(connectURI, getConnectHandler(), sessionInitializer);
+            String resolvedConnectURI = computeConnectURI(acceptSession, URI.create(connectURI)).toASCIIString();
+            ConnectFuture future = getServiceContext().connect(resolvedConnectURI, getConnectHandler(), sessionInitializer);
             future.addListener(new ConnectListener(acceptSession));
             super.sessionOpened(acceptSession);
         }
+    }
+
+    private URI computeConnectURI(DefaultHttpSession acceptSession, URI connectURI) {
+        String acceptPath = acceptSession.getServicePath().getPath();
+        String requestUri = acceptSession.getRequestURI().toString();
+        return URI.create(connectURI + requestUri.substring(acceptPath.length()));
     }
 
     private boolean validateRequestPath(DefaultHttpSession acceptSession) {
@@ -276,16 +283,9 @@ class HttpProxyServiceHandler extends AbstractProxyAcceptHandler {
             HttpConnectSession connectSession = (HttpConnectSession) session;
             connectSession.setVersion(acceptSession.getVersion());
             connectSession.setMethod(acceptSession.getMethod());
-            URI connectURI = computeConnectPath(connectSession.getRequestURI());
+            URI connectURI = connectSession.getRequestURI();
             connectSession.setRequestURI(connectURI);
             processRequestHeaders(acceptSession, connectSession);
-        }
-
-        private URI computeConnectPath(URI connectURI) {
-            String acceptPath = acceptSession.getServicePath().getPath();
-            String requestUri = acceptSession.getRequestURI().toString();
-            String connectPath = connectURI.getPath();
-            return URI.create(connectPath + requestUri.substring(acceptPath.length()));
         }
 
     }
